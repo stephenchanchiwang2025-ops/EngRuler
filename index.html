@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <title>工程尺 V9.1 (Stephen 專用)</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#795548">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            /* 適應手機頂部劉海屏 */
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 480px;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+
+        /* 顯示屏 */
+        .display-area {
+            flex: 1; 
+            background-color: #f9f9f9;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .history-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: #fff;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 20;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .history-container.show { display: flex; }
+
+        .history-header-fixed {
+            flex-shrink: 0;
+            background-color: #fff;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px; 
+        }
+
+        #history-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        .history-item { 
+            padding: 12px 10px; 
+            border-bottom: 1px dashed #eee; 
+            text-align: right; 
+            transition: background-color 0.2s; 
+            cursor: pointer;
+        }
+
+        .history-item.highlight {
+            background-color: #fff9c4; 
+            border-bottom: 1px solid #fbc02d; 
+        }
+
+        .history-item-exp { font-size: 16px; color: #888; pointer-events: none; }
+        .history-item-res { font-size: 20px; font-weight: bold; color: #333; pointer-events: none; }
+        
+        .trunk-badge {
+            font-size: 14px;
+            color: #fff;
+            background-color: #795548; 
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 5px;
+            vertical-align: middle;
+            display: inline-block;
+        }
+
+        .tag-selector-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 5px;
+            border-top: 1px solid #eee;
+        }
+
+        .tag-btn {
+            background-color: #fff;
+            border: 1px solid #999;
+            color: #666;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            min-width: 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .tag-btn.active {
+            background-color: #795548; 
+            color: white;
+            border-color: #5d4037;
+            font-weight: bold;
+        }
+
+        .close-btn { 
+            background-color: #d32f2f; 
+            color: white; 
+            padding: 12px; 
+            width: 100%; 
+            border:none; 
+            border-radius: 8px; 
+            font-size: 18px; 
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .clear-btn {
+            background-color: #ff9800; 
+            color: white;
+            padding: 10px;
+            width: 100%;
+            border:none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .history-text { 
+            font-size: 24px; 
+            color: #555;     
+            margin-bottom: 5px; 
+            min-height: 30px;
+            width: 100%;
+            text-align: right;
+            overflow-x: auto; 
+            white-space: nowrap;
+        }
+        
+        .main-result { font-size: 48px; color: #222; font-weight: bold; line-height: 1.1; word-break: break-all;}
+        .sub-result { font-size: 22px; color: #666; margin-top: 5px; min-height: 26px;}
+
+        .keypad {
+            flex: 2.2; 
+            padding: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* 適應底部手勢橫條 */
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(6, 1fr); 
+            gap: 10px;
+            background-color: #fff;
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 0 #bbb;
+        }
+        button:active { transform: translateY(2px); box-shadow: none; }
+
+        .btn-num { background-color: #f4f4f4; color: #333; font-size: 26px; } 
+        .btn-op { background-color: #e0e0e0; color: #000; font-size: 28px; } 
+        .btn-unit { background-color: #fff3e0; color: #e65100; font-weight: bold; border: 1px solid #ffe0b2; } 
+        .btn-action { background-color: #ffccbc; color: #d84315; font-weight: bold; } 
+        .btn-equal { background-color: #4caf50; color: white; font-size: 32px; } 
+        .btn-45L { background-color: #ce93d8; color: white; font-weight: bold; font-size: 20px; } 
+        .btn-mm { background-color: #fff9c4; color: #fbc02d; font-weight: bold; } 
+        .btn-hist { background-color: #4dd0e1; color: white; font-weight: bold; font-size: 18px; } 
+
+    </style>
+</head>
+<body>
+
+<div class="calculator">
+    <div class="history-container" id="history-view">
+        <div class="history-header-fixed">
+            <button class="close-btn" onclick="toggleHistory(false)">關閉 (Close)</button>
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin:0; color:#555;">計算歷史</h3>
+                <button class="clear-btn" style="width: auto; padding: 8px 15px;" onclick="confirmClearHistory()">🗑️ 清除所有</button>
+            </div>
+            <div style="font-size: 12px; color: #999; text-align: center;">(點擊項目標記線槽大小)</div>
+        </div>
+        <div id="history-list"></div>
+    </div>
+
+    <div class="display-area">
+        <div class="history-text" id="histExp"></div>
+        <div class="main-result" id="mainRes">0</div>
+        <div class="sub-result" id="subRes"></div>
+    </div>
+
+    <div class="keypad">
+        <button class="btn-action" onclick="clearAll()">AC</button>
+        <button class="btn-unit" onclick="inputUnit('寸')">寸</button>
+        <button class="btn-unit" onclick="inputUnit('分')">分</button>
+        <button class="btn-op" onclick="backspace()">⌫</button>
+
+        <button class="btn-num" onclick="inputNum('7')">7</button>
+        <button class="btn-num" onclick="inputNum('8')">8</button>
+        <button class="btn-num" onclick="inputNum('9')">9</button>
+        <button class="btn-op" onclick="inputOp('÷')">÷</button>
+
+        <button class="btn-num" onclick="inputNum('4')">4</button>
+        <button class="btn-num" onclick="inputNum('5')">5</button>
+        <button class="btn-num" onclick="inputNum('6')">6</button>
+        <button class="btn-op" onclick="inputOp('×')">×</button>
+
+        <button class="btn-num" onclick="inputNum('1')">1</button>
+        <button class="btn-num" onclick="inputNum('2')">2</button>
+        <button class="btn-num" onclick="inputNum('3')">3</button>
+        <button class="btn-op" onclick="inputOp('-')">-</button>
+
+        <button class="btn-num" onclick="inputNum('.')">.</button>
+        <button class="btn-num" onclick="inputNum('0')">0</button>
+        <button class="btn-num" onclick="inputNum('00')">00</button>
+        <button class="btn-op" onclick="inputOp('+')">+</button>
+        
+        <button class="btn-mm" onclick="inputUnit('mm')">mm</button>
+        <button class="btn-45L" onclick="calc45L()">45°L</button>
+        <button class="btn-hist" onclick="toggleHistory(true)">HIST</button>
+        <button class="btn-equal" onclick="calcResult()">=</button>
+    </div>
+</div>
+
+<script>
+    let currentInput = ""; 
+    let expression = ""; 
+    let isResultState = false; 
+    let historyLog = JSON.parse(localStorage.getItem('hk_eng_ruler_history_v2')) || [];
+    const MAX_HISTORY = 100; 
+
+    // --- PWA Service Worker 註冊 (支援離線使用) ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                console.log('SW 註冊成功');
+            }).catch(err => console.log('SW 註冊失敗', err));
+        });
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('hk_eng_ruler_history_v2', JSON.stringify(historyLog));
+    }
+
+    function calculateString(str) {
+        if (!str) return 0;
+        let s = str.replace(/×/g, '*').replace(/÷/g, '/');
+        s = s.replace(/(\d+(?:\.\d+)?)寸(\d+(?:\.\d+)?)分?/g, '($1*25.4 + $2*3.175)');
+        s = s.replace(/(\d+(?:\.\d+)?)寸/g, '($1*25.4)');
+        s = s.replace(/(\d+(?:\.\d+)?)分/g, '($1*3.175)');
+        s = s.replace(/mm/g, ''); 
+        try { return new Function('return ' + s)(); } catch (e) { return 0; }
+    }
+
+    function convertToHKInch(mm) {
+        if (!mm || isNaN(mm) || mm == 0) return "";
+        let inchTotal = mm / 25.4;
+        let inchInt = Math.floor(inchTotal);
+        let fenRem = (inchTotal - inchInt) * 8;
+        let fenDisplay = parseFloat(fenRem.toFixed(1));
+        if (Math.round(fenRem) >= 8) { inchInt++; fenDisplay = 0; }
+        else if (fenDisplay >= 8) { inchInt++; fenDisplay = 0; }
+        return `${inchInt}寸 ${fenDisplay}分`;
+    }
+
+    function updateDisplay() {
+        if (isResultState) return;
+        document.getElementById('histExp').innerText = expression;
+        document.getElementById('mainRes').innerText = currentInput || "0";
+        if (currentInput) {
+            let previewVal = calculateString(currentInput);
+            if (previewVal && previewVal !== 0) {
+                 document.getElementById('subRes').innerText = `${previewVal.toFixed(1)} mm`;
+            } else { document.getElementById('subRes').innerText = ""; }
+        } else { document.getElementById('subRes').innerText = ""; }
+    }
+
+    function inputNum(num) {
+        if (isResultState) { clearAll(); }
+        currentInput += num;
+        updateDisplay(); 
+    }
+
+    function inputUnit(unit) {
+        if (isResultState) { clearAll(); }
+        let lastChar = currentInput.slice(-1);
+        if (lastChar !== '寸' && lastChar !== '分' && lastChar !== 'm') {
+            currentInput += unit;
+        }
+        updateDisplay();
+    }
+
+    function inputOp(op) {
+        if (isResultState) {
+            expression = document.getElementById('mainRes').innerText.replace(' mm','') + "mm " + op + " ";
+            currentInput = "";
+            isResultState = false;
+        } else {
+            if (currentInput === "" && expression === "") return;
+            expression += currentInput + " " + op + " ";
+            currentInput = ""; 
+        }
+        updateDisplay();
+    }
+
+    function backspace() {
+        if (isResultState) { clearAll(); return; }
+        currentInput = currentInput.slice(0, -1);
+        updateDisplay();
+    }
+
+    function clearAll() {
+        currentInput = ""; expression = ""; isResultState = false;
+        document.getElementById('histExp').innerText = "";
+        document.getElementById('mainRes').innerText = "0";
+        document.getElementById('subRes').innerText = "";
+    }
+
+    function calcResult() {
+        if (!expression && !currentInput) return;
+        let fullVisualExp = expression + currentInput;
+        let resultMM = calculateString(fullVisualExp);
+        logHistory(fullVisualExp, resultMM);
+
+        isResultState = true;
+        document.getElementById('histExp').innerText = fullVisualExp + " =";
+        document.getElementById('mainRes').innerText = `${resultMM.toFixed(1)} mm`;
+        document.getElementById('subRes').innerText = `(${convertToHKInch(resultMM)})`;
+    }
+
+    function calc45L() {
+        let val;
+        let fullExpStr = "";
+        if (expression || currentInput) {
+            fullExpStr = expression + currentInput;
+            val = calculateString(fullExpStr);
+        } else if (isResultState) {
+            val = parseFloat(document.getElementById('mainRes').innerText);
+            fullExpStr = document.getElementById('histExp').innerText.replace(' =', '');
+        }
+
+        if (!val) return;
+        let hypotenuse = val / 0.70710678;
+        let sumHK = convertToHKInch(val);
+        let expText = `(${sumHK}) / 0.707`;
+
+        logHistory(expText, hypotenuse);
+
+        isResultState = true;
+        document.getElementById('histExp').innerText = expText + " =";
+        document.getElementById('mainRes').innerText = `${hypotenuse.toFixed(1)} mm`;
+        document.getElementById('subRes').innerText = `(${convertToHKInch(hypotenuse)})`;
+        currentInput = ""; expression = "";
+    }
+
+    function logHistory(exp, resultMM) {
+        if (resultMM === 0 && historyLog.length > 0 && historyLog[historyLog.length-1].resultMM === 0) return;
+        historyLog.push({
+            expression: exp,
+            resultMM: resultMM,
+            resultHK: convertToHKInch(resultMM),
+            highlighted: false,
+            trunkSize: null 
+        });
+        if (historyLog.length > MAX_HISTORY) historyLog.shift();
+        saveToStorage();
+    }
+
+    function confirmClearHistory() {
+        if (historyLog.length === 0) return;
+        if (confirm("⚠️ 確定要清除所有記錄嗎？")) {
+            historyLog = [];
+            saveToStorage(); 
+            renderHistoryList(); 
+        }
+    }
+
+    function toggleHighlight(index) {
+        historyLog[index].highlighted = !historyLog[index].highlighted;
+        saveToStorage(); 
+        renderHistoryList(); 
+    }
+
+    function setTrunkSize(index, size, event) {
+        event.stopPropagation();
+        if (historyLog[index].trunkSize === size) {
+            historyLog[index].trunkSize = null;
+        } else {
+            historyLog[index].trunkSize = size;
+        }
+        saveToStorage();
+        renderHistoryList();
+    }
+
+    function renderHistoryList() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = '';
+        for (let i = historyLog.length - 1; i >= 0; i--) {
+            const item = historyLog[i];
+            const div = document.createElement('div');
+            div.className = item.highlighted ? 'history-item highlight' : 'history-item';
+            div.onclick = function() { toggleHighlight(i); };
+
+            let badgeHtml = '';
+            if (item.trunkSize) {
+                badgeHtml = `<span class="trunk-badge">${item.trunkSize}槽</span>`;
+            }
+
+            let selectorHtml = '';
+            if (item.highlighted) {
+                const sizes = [100, 150, 200, 300];
+                let buttonsHtml = sizes.map(size => {
+                    const isActive = (item.trunkSize === size) ? 'active' : '';
+                    return `<div class="tag-btn ${isActive}" onclick="setTrunkSize(${i}, ${size}, event)">${size}</div>`;
+                }).join('');
+                selectorHtml = `<div class="tag-selector-row">${buttonsHtml}</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="history-item-exp">${item.expression}</div>
+                <div class="history-item-res">
+                    ${item.resultMM.toFixed(1)} mm 
+                    <span style="font-size:14px;color:#666">(${item.resultHK})</span>
+                    ${badgeHtml}
+                </div>
+                ${selectorHtml}
+            `;
+            list.appendChild(div);
+        }
+    }
+
+    function toggleHistory(shouldShow) {
+        const historyView = document.getElementById('history-view');
+        if (shouldShow) {
+            renderHistoryList(); 
+            historyView.classList.add('show');
+        } else {
+            historyView.classList.remove('show');
+        }
+    }
+
+    clearAll(); 
+</script>
+</body>
+</html>
