@@ -9,10 +9,11 @@
   "theme_color": "#795548",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1085/1085493.png",
+      "src": "my-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ]
+
 }
