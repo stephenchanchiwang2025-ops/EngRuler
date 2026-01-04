@@ -1,15 +1,15 @@
 {
   "name": "工程尺 V9.1 (Stephen 專用)",
   "short_name": "工程尺",
-  "description": "啟德地盤電工專用Offset計算機",
-  "start_url": "index.html?v=v95",
+  "description": "電工專用線槽Offset計算機",
+  "start_url": "index.html?v=v96",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "icon-safe.png?v=95",
+      "src": "final-black-icon.png?v=96",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"
